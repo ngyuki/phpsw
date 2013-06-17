@@ -1,65 +1,102 @@
 !function(){
-    var url = "http://windows.php.net/downloads/releases/php-5.4.16-nts-Win32-VC9-x86.zip";
-    var zip = "archive\\php-5.4.16-nts-Win32-VC9-x86.zip";
-    var dst = "versions\\5.4.16";
-    
+
+    var host = 'http://windows.php.net';
+    var url  = 'http://windows.php.net/downloads/releases/';
+    var pat  = 'href="(/downloads/releases/(php-([.0-9]+)-nts-Win32-VC9-x86.zip))"';
+
     var wsh = WScript.CreateObject('WScript.Shell');
     var fso = WScript.CreateObject('Scripting.FileSystemObject');
-    
+
     function log(str)
     {
         WScript.Echo(str);
     }
-    
-    function setupDirectory()
+
+    function setup_cwd()
     {
         wsh.CurrentDirectory = fso.GetParentFolderName(fso.GetParentFolderName(WScript.ScriptFullName));
         return wsh.CurrentDirectory;
     }
-    
-    function download(url, fn)
+
+    function scan_latest_version()
+    {
+        var xhr = WScript.CreateObject('Msxml2.XMLHTTP');
+
+        xhr.open('GET', url, false);
+        xhr.send();
+
+        var html = xhr.responseText;
+        var reg = new RegExp(pat, 'gi');
+
+        var m, ret;
+
+        while (m = reg.exec(html))
+        {
+            ret = {
+                url: host + m[1],
+                file: m[2],
+                version: m[3]
+            };
+        }
+
+        if (!ret)
+        {
+            throw new Error("notfound latest php version");
+        }
+
+        return ret;
+    }
+
+    function download(url, savefile)
     {
         var xhr = WScript.CreateObject('Msxml2.XMLHTTP');
         xhr.open("GET", url, false);
         xhr.send();
-        
+
         var stream = WScript.CreateObject('Adodb.Stream');
         var adTypeBinary = 1;
         var adSaveCreateOverwrite = 2;
-        
+
         stream.Type = adTypeBinary;
         stream.Open();
         stream.Write(xhr.responseBody);
-        stream.SaveToFile(fn, adSaveCreateOverwrite);
+        stream.SaveToFile(savefile, adSaveCreateOverwrite);
     }
 
     function unzip(zip, dir)
     {
         var zip_abs = fso.GetAbsolutePathName(zip);
         var dir_abs = fso.GetAbsolutePathName(dir);
-        
+
         if (!fso.FolderExists(dir_abs))
         {
             fso.CreateFolder(dir_abs);
         }
-        
-        var options = 0
-            //| 4   // 進捗ダイアログを表示しない
-            | 16  // すべて はい
-        ;
-        
+
+        var options = 16; // all Yes
         var explorer = WScript.CreateObject('Shell.Application');
         explorer.NameSpace(dir_abs).CopyHere(explorer.NameSpace(zip_abs).Items(), options);
     }
-
-    var cwd = setupDirectory();
+    
+    var cwd = setup_cwd();
     log("cwd ... " + cwd);
     
-    log("download ... " + url);
-    download(url, zip);
-
-    log("unzip ... " + zip);
-    unzip(zip, dst);
+    log("scan ... " + url);
+    var latest = scan_latest_version();
+    
+    log("find latest php");
+    log("  url     : " + latest.url);
+    log("  file    : " + latest.file);
+    log("  version : " + latest.version);
+    
+    var zipfile = "archive\\" + latest.file;
+    var destdir = "versions\\" + latest.version;
+    
+    log("download ... " + latest.url);
+    download(latest.url, zipfile);
+    
+    log("unzip ... " + zipfile);
+    unzip(zipfile, destdir);
 }()
 
 // WScript - http://msdn.microsoft.com/ja-jp/library/cc364456.aspx

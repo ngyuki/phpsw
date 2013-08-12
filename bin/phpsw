@@ -5,112 +5,124 @@ cd "$(dirname "$0")/../"
 
 function pp
 {
-	echo -ne "\e[1;32m"
-	echo -n "$*"
-	echo -ne "\e[m\n\n"
+    echo -ne "\e[1;32m"
+    echo -n "$*"
+    echo -ne "\e[m\n"
 }
 
 function err
 {
-	{
-		echo -ne "\e[1;31m"
-		echo -n "$*"
-		echo -ne "\e[m\n"
-	} 1>&2
-	exit 1
+    {
+        echo -ne "\e[1;31m"
+        echo -n "$*"
+        echo -ne "\e[m\n"
+    } 1>&2
+}
+
+function errexit
+{
+    err "$@"
+    exit 1
 }
 
 function cmd
 {
-	echo -ne "\e[1;33m"
-	cmd.exe /c "$*"
-	echo -ne "\e[m"
+    echo -ne "\e[1;33m"
+    cmd.exe /c "$*"
+    echo -ne "\e[m"
 }
 
 function detect
 {
-	local php="$(ls versions/*/php.exe 2>/dev/null | tail -1)"
+    local php="$(ls versions/*/php.exe 2>/dev/null | tail -1)"
 
-	[ ! -z "$php" ] && echo "$php"
+    if [ -z "$php" ]; then
+        err "not detect php.exe"
+        return 1
+    fi
+
+    echo "$php"
 }
 
 function vsort
 {
-	local php="$(detect)"
+    local php="$(detect)"
 
-	"$php" -n -r '
-		$a = array_map("trim", file("php://stdin"));
-		usort($a, "version_compare");
-		echo(join("\n", $a)) . "\n";
-	'
+    if [ -z "$php" ]; then
+        sort -t . -n -k 1,1 -k 2,2 -k 3,3
+    else
+        "$php" -n -r '
+            $a = array_map("trim", file("php://stdin"));
+            usort($a, "version_compare");
+            echo(join("\n", $a)) . "\n";
+        '
+    fi
 }
 
 function list_versions
 {
-	find "versions/" -type d -mindepth 1 -maxdepth 1 |
-		sed 's/^.*\///' | vsort
+    find "versions/" -type d -mindepth 1 -maxdepth 1 | sed 's/^.*\///' | vsort
 }
 
 function filter
 {
-	local p="$(echo "$1" | tr . '\.')"
-	sed 's/$/./' | grep "^$p\." | sed 's/.$//'
+    local p="$(echo "$1" | tr . '\.')"
+    sed 's/$/./' | grep "^$p\." | sed 's/.$//'
 }
 
 function makeconf
 {
-	if [ -z "$1" ]; then
-		for v in $(list_versions); do
-			php_dir="versions/$v"
-			"$php_dir/php" -n "lib/makeconf.php" "$php_dir"
-			echo "$php_dir/php.ini"
-		done
-	else
-		php_dir="$1"
-		"$php_dir/php" -n "lib/makeconf.php" "$php_dir"
-		echo "$php_dir/php.ini"
-	fi
-
-	echo
+    if [ -z "$1" ]; then
+        for v in $(list_versions); do
+            php_dir="versions/$v"
+            "$php_dir/php" -n "lib/makeconf.php" "$php_dir"
+            echo "$php_dir/php.ini"
+        done
+    else
+        php_dir="$1"
+        "$php_dir/php" -n "lib/makeconf.php" "$php_dir"
+        echo "$php_dir/php.ini"
+    fi
 }
 
 function phpsw
 {
-	v=$(list_versions | filter "$1" | tail -1)
-	[ -z "$v" ] && err "php-$1 notfound"
+    v=$(list_versions | filter "$1" | tail -1)
+    [ -z "$v" ] && errexit "php-$1 notfound"
 
-	php_dir="versions/$v"
-	[ ! -f "$php_dir/php.exe" ] && err "$php_dir/php.exe notfound"
+    php_dir="versions/$v"
+    [ ! -f "$php_dir/php.exe" ] && errexit "$php_dir/php.exe notfound"
 
-	[ -d "php" ] &&  cmd rmdir "php"
-	cmd mklink /J "php" "versions\\$v"
+    [ -d "php" ] &&  cmd rmdir "php"
+    cmd mklink /J "php" "versions\\$v"
 
-	"$php_dir/php" -n "lib/makeconf.php" "$php_dir"
+    "$php_dir/php" -n "lib/makeconf.php" "$php_dir"
 }
 
 case "$1" in
-	"")
-		pp "*LIST VERSIONS"
-		list_versions
-		echo
+    "")
+        pp "*LIST VERSIONS"
+        list_versions | sed 's/^/  /'
+        echo
 
-		pp "*CURRENT VERSION"
-		php -n -v | sed 's/^/  /'
-		echo
-		;;
+        pp "*CURRENT VERSION"
+        php/php.exe -n -v | sed 's/^/  /'
+        echo
+        ;;
 
-	makeconf)
-		pp "*MAKECONF"
-		makeconf
-		;;
+    makeconf)
+        pp "*MAKECONF"
+        makeconf | sed 's/^/  /'
+        echo
+        ;;
 
-	*)
-		pp "*SWITCH VERSION"
-		phpsw "$1"
-		echo
+    *)
+        pp "*SWITCH VERSION"
+        phpsw "$1"
+        echo
 
-		pp "*CURRENT VERSION"
-		php -n -v | sed 's/^/  /'
-		echo
-		;;
+        pp "*CURRENT VERSION"
+        php/php.exe -n -v | sed 's/^/  /'
+        echo
+        ;;
 esac

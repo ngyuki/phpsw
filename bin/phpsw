@@ -3,55 +3,40 @@
 set -e
 cd "$(dirname "$0")/../"
 
-# 見出し表示
 function pp
 {
-	{
-		echo -e "\n\e[1;32m"
-		echo "$*"
-		echo -e "\e[m"
-	} 1>&2
+	echo -ne "\e[1;32m"
+	echo -n "$*"
+	echo -ne "\e[m\n\n"
 }
 
-# エラーを表示して終了
 function err
 {
 	{
-		echo -e "\n\e[1;31m"
-		echo "$*"
-		echo -e "\e[m"
+		echo -ne "\e[1;31m"
+		echo -n "$*"
+		echo -ne "\e[m\n"
 	} 1>&2
 	exit 1
 }
 
-# cmd.exe でコマンド実行
 function cmd
 {
-	{
-		echo -ne "\e[1;33m"
-		cmd.exe /c "$*"
-		echo -ne "\e[m"
-	} 1>&2
+	echo -ne "\e[1;33m"
+	cmd.exe /c "$*"
+	echo -ne "\e[m"
 }
 
-# カレントディレクトリを Windows 形式で得る
-function winpwd
-{
-	cmd.exe /c cd
-}
-
-# 任意の php.exe を探す
-function search_php
+function detect
 {
 	local php="$(ls versions/*/php.exe 2>/dev/null | tail -1)"
 
 	[ ! -z "$php" ] && echo "$php"
 }
 
-# バージョン番号でソート
-function sort_versions
+function vsort
 {
-	local php="$(search_php)"
+	local php="$(detect)"
 
 	"$php" -n -r '
 		$a = array_map("trim", file("php://stdin"));
@@ -60,54 +45,72 @@ function sort_versions
 	'
 }
 
-# バージョンの一覧表示
-function versions
+function list_versions
 {
-	find versions/ -type d -mindepth 1 -maxdepth 1 |
-		sed 's/^.*\///' | sort_versions
+	find "versions/" -type d -mindepth 1 -maxdepth 1 |
+		sed 's/^.*\///' | vsort
 }
 
-# バージョン番号でフィルタ
 function filter
 {
 	local p="$(echo "$1" | tr . '\.')"
 	sed 's/$/./' | grep "^$p\." | sed 's/.$//'
 }
 
-# php.ini
-function make_ini
-{(
-	cd "$1"
-	php_dir="$(winpwd | sed 's/\\/\//g')"
+function makeconf
+{
+	if [ -z "$1" ]; then
+		for v in $(list_versions); do
+			php_dir="versions/$v"
+			"$php_dir/php" -n "lib/makeconf.php" "$php_dir"
+			echo "$php_dir/php.ini"
+		done
+	else
+		php_dir="$1"
+		"$php_dir/php" -n "lib/makeconf.php" "$php_dir"
+		echo "$php_dir/php.ini"
+	fi
 
-	{
-		[ -f php.ini-recommended ] && cat php.ini-recommended
-		[ -f php.ini-development ] && cat php.ini-development
+	echo
+}
 
-		cat conf.d/* 2>/dev/null |
-			php -R 'echo str_replace("\$php_dir", $argv[1], $argn . PHP_EOL);' "$php_dir"
-	} > php.ini
-)}
-
-if [ -n "$1" ]; then
-
-	v=$(versions | filter "$1" | tail -1)
-
+function phpsw
+{
+	v=$(list_versions | filter "$1" | tail -1)
 	[ -z "$v" ] && err "php-$1 notfound"
 
 	php_dir="versions/$v"
-
 	[ ! -f "$php_dir/php.exe" ] && err "$php_dir/php.exe notfound"
 
 	[ -d "php" ] &&  cmd rmdir "php"
-
 	cmd mklink /J "php" "versions\\$v"
 
-	make_ini "$php_dir"
-fi
+	"$php_dir/php" -n "lib/makeconf.php" "$php_dir"
+}
 
-pp "*PHP VERSIONS..."
-versions
+case "$1" in
+	"")
+		pp "*LIST VERSIONS"
+		list_versions
+		echo
 
-pp "*CURRENT VERSION"
-php -n -v
+		pp "*CURRENT VERSION"
+		php -n -v | sed 's/^/  /'
+		echo
+		;;
+
+	makeconf)
+		pp "*MAKECONF"
+		makeconf
+		;;
+
+	*)
+		pp "*SWITCH VERSION"
+		phpsw "$1"
+		echo
+
+		pp "*CURRENT VERSION"
+		php -n -v | sed 's/^/  /'
+		echo
+		;;
+esac

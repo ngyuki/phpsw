@@ -2,7 +2,7 @@
 
     var host = 'http://windows.php.net';
     var url  = 'http://windows.php.net/downloads/releases/';
-    var pat  = 'href="(/downloads/releases/(php-([.0-9]+)-nts-Win32-VC9-x86.zip))"';
+    var pat  = 'href="(/downloads/releases/(php-([.0-9]+)-nts-Win32-VC[0-9]+-x86.zip))"';
 
     var wsh = WScript.CreateObject('WScript.Shell');
     var fso = WScript.CreateObject('Scripting.FileSystemObject');

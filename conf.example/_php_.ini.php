@@ -1,6 +1,6 @@
 [misc]
 
-include_path = ".;<?= realpath("$base_dir/../php-pear/php") ?>"
+include_path = ".;<?= realpath("$base_dir/pear/php") ?>"
 expose_php = Off
 error_reporting = -1
 log_errors = Off
@@ -23,6 +23,7 @@ phar.readonly = Off
 extension_dir = ext
 
 extension = php_mbstring.dll
+extension = php_sqlite3.dll
 ;extension = php_mysqli.dll
 extension = php_pdo_mysql.dll
 extension = php_sockets.dll

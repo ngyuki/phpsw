@@ -3,3 +3,4 @@
 /vendor
 /composer.lock
 /pyrus.phar
+/.pear2registry

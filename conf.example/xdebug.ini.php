@@ -30,3 +30,5 @@ xdebug.profiler_output_dir = "."
 ;xdebug.var_display_max_children = 1280
 ;xdebug.var_display_max_data = 102400
 ;xdebug.var_display_max_depth = 100
+
+xdebug.max_nesting_level = 1000

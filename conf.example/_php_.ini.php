@@ -36,3 +36,4 @@ extension = php_pdo_sqlite.dll
 extension = php_fileinfo.dll
 extension = php_intl.dll
 extension = php_ldap.dll
+extension = php_com_dotnet.dll

@@ -36,4 +36,7 @@ extension = php_pdo_sqlite.dll
 extension = php_fileinfo.dll
 extension = php_intl.dll
 extension = php_ldap.dll
+
+<?php if ($this->compare("5.4.0") >= 0): ?>
 extension = php_com_dotnet.dll
+<?php endif; ?>

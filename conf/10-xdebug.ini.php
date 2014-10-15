@@ -12,6 +12,10 @@ zend_extension = "<?= $base_dir ?>/ext/php_xdebug-2.2.2-5.4-vc9-nts.dll"
 
 zend_extension = "<?= $base_dir ?>/ext/php_xdebug-2.2.5-5.5-vc11-nts.dll"
 
+<?php elseif ($this->match("5.6.*")): ?>
+
+zend_extension = "<?= $base_dir ?>/ext/php_xdebug-2.2.5-5.6-vc11-nts-x86_64.dll"
+
 <?php endif; ?>
 
 xdebug.default_enable = On

@@ -1,6 +1,5 @@
 [misc]
 
-include_path = ".;<?= realpath("$base_dir/pear/php") ?>"
 expose_php = Off
 error_reporting = -1
 log_errors = Off

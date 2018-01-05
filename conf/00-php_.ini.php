@@ -17,6 +17,9 @@ upload_max_filesize = 24M
 memory_limit = 256M
 realpath_cache_size = 8M
 
+curl.cainfo = "<?= realpath(__DIR__ . DIRECTORY_SEPARATOR . "ca-bundle.crt") ?>"
+openssl.cafile = "<?= realpath(__DIR__ . DIRECTORY_SEPARATOR . "ca-bundle.crt") ?>"
+
 phar.readonly = Off
 
 extension_dir = ext

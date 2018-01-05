@@ -23,7 +23,7 @@ extension_dir = ext
 
 extension = php_mbstring.dll
 extension = php_sqlite3.dll
-;extension = php_mysqli.dll
+extension = php_mysqli.dll
 extension = php_pdo_mysql.dll
 extension = php_sockets.dll
 ;extension = php_gd2.dll
